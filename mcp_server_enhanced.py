@@ -67,6 +67,43 @@ def log_incident(data):
 def send_email(subject, body, to='alexcomp2@outlook.com'):
     subprocess.run(['mail', '-s', subject, to], input=body, text=True)
 
+# Utility: Determine if a repository should be monitored
+def should_monitor_repository(repo_full_name):
+    """Determine if a repository should be monitored based on configuration"""
+    
+    # If specific repos are allowed, only monitor those
+    if ALLOWED_REPOS and ALLOWED_REPOS != ['']:
+        return repo_full_name in ALLOWED_REPOS
+    
+    # Skip ignored repositories
+    if repo_full_name in IGNORED_REPOS:
+        return False
+    
+    # Check if it's from a monitored user
+    for user in MONITORED_USERS:
+        if repo_full_name.startswith(f'{user}/'):
+            return True
+    
+    # Check if it's from a monitored organization
+    for org in MONITORED_ORGS:
+        if repo_full_name.startswith(f'{org}/'):
+            return True
+    
+    # If you have admin access, check via GitHub API
+    if GITHUB_TOKEN:
+        try:
+            headers = {'Authorization': f'token {GITHUB_TOKEN}'}
+            response = requests.get(f'https://api.github.com/repos/{repo_full_name}', headers=headers)
+            if response.status_code == 200:
+                repo_data = response.json()
+                permissions = repo_data.get('permissions', {})
+                # Monitor if you have admin or maintain permissions
+                return permissions.get('admin', False) or permissions.get('maintain', False)
+        except:
+            pass
+    
+    return False
+
 # Endpoint: Trigger scan (simulate git event)
 @app.route('/scan', methods=['POST'])
 def scan():
@@ -223,42 +260,6 @@ def scan_content(content, file_path):
     
     return issues
 
-# Utility: Determine if a repository should be monitored
-def should_monitor_repository(repo_full_name):
-    """Determine if a repository should be monitored based on configuration"""
-    
-    # If specific repos are allowed, only monitor those
-    if ALLOWED_REPOS and ALLOWED_REPOS != ['']:
-        return repo_full_name in ALLOWED_REPOS
-    
-    # Skip ignored repositories
-    if repo_full_name in IGNORED_REPOS:
-        return False
-    
-    # Check if it's from a monitored user
-    for user in MONITORED_USERS:
-        if repo_full_name.startswith(f'{user}/'):
-            return True
-    
-    # Check if it's from a monitored organization
-    for org in MONITORED_ORGS:
-        if repo_full_name.startswith(f'{org}/'):
-            return True
-    
-    # If you have admin access, check via GitHub API
-    if GITHUB_TOKEN:
-        try:
-            headers = {'Authorization': f'token {GITHUB_TOKEN}'}
-            response = requests.get(f'https://api.github.com/repos/{repo_full_name}', headers=headers)
-            if response.status_code == 200:
-                repo_data = response.json()
-                permissions = repo_data.get('permissions', {})
-                # Monitor if you have admin or maintain permissions
-                return permissions.get('admin', False) or permissions.get('maintain', False)
-        except:
-            pass
-    
-    return False
 # Enhanced endpoint: GitHub webhook for monitoring ALL repositories you manage
 @app.route('/webhook/github', methods=['POST'])
 def github_webhook():

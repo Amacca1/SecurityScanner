@@ -1,0 +1,217 @@
+{
+  "owned": [
+    {
+      "name": "Amacca1/apache_age",
+      "private": false,
+      "fork": true,
+      "permissions": {
+        "admin": true,
+        "maintain": true,
+        "push": true,
+        "triage": true,
+        "pull": true
+      },
+      "owner_type": "User"
+    },
+    {
+      "name": "Amacca1/blink",
+      "private": false,
+      "fork": true,
+      "permissions": {
+        "admin": true,
+        "maintain": true,
+        "push": true,
+        "triage": true,
+        "pull": true
+      },
+      "owner_type": "User"
+    },
+    {
+      "name": "Amacca1/Chatbot",
+      "private": false,
+      "fork": false,
+      "permissions": {
+        "admin": true,
+        "maintain": true,
+        "push": true,
+        "triage": true,
+        "pull": true
+      },
+      "owner_type": "User"
+    },
+    {
+      "name": "Amacca1/MetricPage",
+      "private": false,
+      "fork": false,
+      "permissions": {
+        "admin": true,
+        "maintain": true,
+        "push": true,
+        "triage": true,
+        "pull": true
+      },
+      "owner_type": "User"
+    },
+    {
+      "name": "Amacca1/Research_CS",
+      "private": false,
+      "fork": false,
+      "permissions": {
+        "admin": true,
+        "maintain": true,
+        "push": true,
+        "triage": true,
+        "pull": true
+      },
+      "owner_type": "User"
+    },
+    {
+      "name": "Amacca1/SecurityScanner",
+      "private": false,
+      "fork": false,
+      "permissions": {
+        "admin": true,
+        "maintain": true,
+        "push": true,
+        "triage": true,
+        "pull": true
+      },
+      "owner_type": "User"
+    },
+    {
+      "name": "Amacca1/test",
+      "private": false,
+      "fork": false,
+      "permissions": {
+        "admin": true,
+        "maintain": true,
+        "push": true,
+        "triage": true,
+        "pull": true
+      },
+      "owner_type": "User"
+    },
+    {
+      "name": "Amacca1/TestBot",
+      "private": false,
+      "fork": false,
+      "permissions": {
+        "admin": true,
+        "maintain": true,
+        "push": true,
+        "triage": true,
+        "pull": true
+      },
+      "owner_type": "User"
+    }
+  ],
+  "admin": [
+    {
+      "name": "Amacca1/apache_age",
+      "private": false,
+      "fork": true,
+      "permissions": {
+        "admin": true,
+        "maintain": true,
+        "push": true,
+        "triage": true,
+        "pull": true
+      },
+      "owner_type": "User"
+    },
+    {
+      "name": "Amacca1/blink",
+      "private": false,
+      "fork": true,
+      "permissions": {
+        "admin": true,
+        "maintain": true,
+        "push": true,
+        "triage": true,
+        "pull": true
+      },
+      "owner_type": "User"
+    },
+    {
+      "name": "Amacca1/Chatbot",
+      "private": false,
+      "fork": false,
+      "permissions": {
+        "admin": true,
+        "maintain": true,
+        "push": true,
+        "triage": true,
+        "pull": true
+      },
+      "owner_type": "User"
+    },
+    {
+      "name": "Amacca1/MetricPage",
+      "private": false,
+      "fork": false,
+      "permissions": {
+        "admin": true,
+        "maintain": true,
+        "push": true,
+        "triage": true,
+        "pull": true
+      },
+      "owner_type": "User"
+    },
+    {
+      "name": "Amacca1/Research_CS",
+      "private": false,
+      "fork": false,
+      "permissions": {
+        "admin": true,
+        "maintain": true,
+        "push": true,
+        "triage": true,
+        "pull": true
+      },
+      "owner_type": "User"
+    },
+    {
+      "name": "Amacca1/SecurityScanner",
+      "private": false,
+      "fork": false,
+      "permissions": {
+        "admin": true,
+        "maintain": true,
+        "push": true,
+        "triage": true,
+        "pull": true
+      },
+      "owner_type": "User"
+    },
+    {
+      "name": "Amacca1/test",
+      "private": false,
+      "fork": false,
+      "permissions": {
+        "admin": true,
+        "maintain": true,
+        "push": true,
+        "triage": true,
+        "pull": true
+      },
+      "owner_type": "User"
+    },
+    {
+      "name": "Amacca1/TestBot",
+      "private": false,
+      "fork": false,
+      "permissions": {
+        "admin": true,
+        "maintain": true,
+        "push": true,
+        "triage": true,
+        "pull": true
+      },
+      "owner_type": "User"
+    }
+  ],
+  "maintain": [],
+  "collaborator": [],
+  "organizations": {}
+}

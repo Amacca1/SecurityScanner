@@ -201,6 +201,16 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Environment variables and secrets
+.env
+.env.local
+.env.production
+.env.staging
+
+# Security scanner logs and incidents
+security_incidents.log
+*.log
+
 # Marimo
 marimo/_static/
 marimo/_lsp/

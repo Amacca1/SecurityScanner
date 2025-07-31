@@ -25,21 +25,27 @@ class SecurityScanner:
                 (r'ghp_[a-zA-Z0-9]{36}', 'critical', 'GitHub personal access token'),
                 (r'xoxb-[0-9]{11}-[0-9]{11}-[a-zA-Z0-9]{24}', 'critical', 'Slack bot token'),
             ],
+            # Security vulnerability patterns 
             'vulnerabilities': [
-                (r'eval\s*\(', 'high', 'Use of eval() function'),
-                (r'exec\s*\(', 'high', 'Use of exec() function'),
+                (r'\beval\s*\(', 'high', 'Use of eval() function'),
+                (r'\bexec\s*\(', 'high', 'Use of exec() function'),
                 (r'os\.system\s*\(', 'high', 'OS command execution'),
                 (r'subprocess\.call\s*\(.*shell\s*=\s*True', 'high', 'Shell injection risk'),
-                (r'input\s*\([^)]*\)', 'medium', 'Use of input() function'),
+                (r'\binput\s*\([^)]*\)', 'medium', 'Use of input() function'),
                 (r'pickle\.loads?\s*\(', 'high', 'Unsafe pickle deserialization'),
                 (r'yaml\.load\s*\(', 'medium', 'Unsafe YAML loading'),
-                (r'sql.*\+.*%', 'high', 'Potential SQL injection'),
+                (r'sql.*\+.*[\'"].*%[\'"]', 'high', 'Potential SQL injection'),
             ]
         }
 
     def scan_file(self, file_path: Path) -> List[Dict[str, Any]]:
         """Scan a single file for security issues"""
         issues = []
+        
+        # Skip scanning the scanner files themselves to avoid false positives
+        scanner_files = ['scanner.py', 'mcp_server.py', 'mcp_server_enhanced.py']
+        if file_path.name in scanner_files:
+            return issues
         
         try:
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:

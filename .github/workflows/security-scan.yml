@@ -1,0 +1,63 @@
+name: Security Scanner
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Download Security Scanner
+      run: |
+        curl -O https://raw.githubusercontent.com/amacca1/SecurityScanner/main/scanner.py
+        chmod +x scanner.py
+    
+    - name: Run Security Scan
+      id: scan
+      run: |
+        python3 scanner.py --format json > scan_results.json
+        echo "scan_complete=true" >> $GITHUB_OUTPUT
+      continue-on-error: true
+    
+    - name: Check Scan Results
+      run: |
+        if [ -f scan_results.json ]; then
+          critical=$(jq '.summary.critical // 0' scan_results.json)
+          high=$(jq '.summary.high // 0' scan_results.json)
+          
+          if [ "$critical" -gt 0 ] || [ "$high" -gt 0 ]; then
+            echo "🚨 SECURITY VULNERABILITIES FOUND!"
+            echo "Critical: $critical, High: $high"
+            cat scan_results.json
+            exit 1
+          else
+            echo "✅ No critical or high vulnerabilities found"
+          fi
+        fi
+    
+    - name: Post to Slack/Discord (Optional)
+      if: failure()
+      run: |
+        # Add webhook URL to send notifications
+        # curl -X POST -H 'Content-type: application/json' \
+        #   --data '{"text":"Security vulnerabilities found in ${{ github.repository }}"}' \
+        #   ${{ secrets.SLACK_WEBHOOK_URL }}
+        echo "Would send notification here"
+    
+    - name: Upload scan results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-scan-results
+        path: scan_results.json

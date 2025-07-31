@@ -29,7 +29,9 @@ def run_scanner(scan_staged=True):
 
 # Utility: Send Mac notification
 def send_mac_notification(message):
-    subprocess.run(['osascript', '-e', f'display notification "{message}" with title "Security Alert"'])
+    result = subprocess.run(['osascript', '-e', f'display notification "{message}" with title "Security Alert"'], capture_output=True, text=True)
+    if result.returncode != 0:
+        print("Notification error:", result.stderr)
 
 # Utility: Log incident
 def log_incident(data):
@@ -37,7 +39,7 @@ def log_incident(data):
         f.write(json.dumps(data) + '\n')
 
 # Utility: Send email (example using mail)
-def send_email(subject, body, to='security@example.com'):
+def send_email(subject, body, to='alexcomp2@outlook.com'):
     subprocess.run(['mail', '-s', subject, to], input=body, text=True)
 
 # Endpoint: Trigger scan (simulate git event)
@@ -59,4 +61,4 @@ def poll_git_changes():
     pass
 
 if __name__ == '__main__':
-    app.run(port=5000)
+    app.run(port=5001)

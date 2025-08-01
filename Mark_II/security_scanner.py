@@ -203,27 +203,28 @@ class GitCommitScanner:
         
         staged_files = []
         try:
-            # Get staged files (files in index vs HEAD)
-            for item in self.repo.index.diff("HEAD"):
-                if item.change_type in ['A', 'M']:  # Added or Modified
-                    staged_files.append(item.a_path)
+            # Use git command directly to get only Added and Modified files
+            import subprocess
+            result = subprocess.run(
+                ['git', 'diff', '--cached', '--name-only', '--diff-filter=AM'],
+                cwd=self.repo_path,
+                capture_output=True,
+                text=True
+            )
+            if result.returncode == 0:
+                staged_files = [f.strip() for f in result.stdout.splitlines() if f.strip()]
             
-            # Also check for new files (not yet in HEAD)
-            for item in self.repo.index.diff(None):
-                if item.change_type == 'A':  # New files
-                    staged_files.append(item.a_path)
-                    
-            # Alternative method: use git command directly
+            # Fallback: try using GitPython if git command fails
             if not staged_files:
-                import subprocess
-                result = subprocess.run(
-                    ['git', 'diff', '--cached', '--name-only', '--diff-filter=AM'],
-                    cwd=self.repo_path,
-                    capture_output=True,
-                    text=True
-                )
-                if result.returncode == 0:
-                    staged_files = [f.strip() for f in result.stdout.splitlines() if f.strip()]
+                for item in self.repo.index.diff("HEAD"):
+                    if item.change_type in ['A', 'M']:  # Added or Modified only
+                        staged_files.append(item.a_path)
+                
+                # Also check for new files (not yet in HEAD)
+                for item in self.repo.index.diff(None):
+                    if item.change_type == 'A':  # New files only
+                        staged_files.append(item.a_path)
+                        
         except Exception as e:
             logging.error(f"Error getting staged files: {e}")
         
@@ -236,15 +237,21 @@ class GitCommitScanner:
             return ""
         
         try:
-            # Get content from staging area
-            blob = self.repo.index.entries[file_path].binsha
-            return self.repo.odb.stream(blob).read().decode('utf-8', errors='ignore')
-        except:
-            # Fallback to reading from working directory
+            # First try to read from working directory (most reliable for new files)
             full_path = self.repo_path / file_path
             if full_path.exists():
                 with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    return f.read()
+                    content = f.read()
+                    if content.strip():  # If we got content, return it
+                        return content
+            
+            # Fallback: try to get content from staging area
+            if file_path in self.repo.index.entries:
+                blob = self.repo.index.entries[file_path].binsha
+                return self.repo.odb.stream(blob).read().decode('utf-8', errors='ignore')
+                
+        except Exception as e:
+            logging.error(f"Error reading file content for {file_path}: {e}")
         
         return ""
 
@@ -328,7 +335,9 @@ class SecurityScanner:
             scan_results["summary"]["total_files"] += 1
             
             content = self.git_scanner.get_file_content(file_path)
+            logging.info(f"File content length for {file_path}: {len(content)}")
             if not content:
+                logging.warning(f"No content found for {file_path}, skipping analysis")
                 continue
             
             # Analyze with Claude

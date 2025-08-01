@@ -1,0 +1,64 @@
+2025-08-01 14:40:46,890 - INFO - Starting security scan of staged files...
+2025-08-01 14:40:46,900 - INFO - Found staged files: ['Mark_II/SECURITY_FIXES.md', 'Mark_II/mcp_server/mcp_client.py', 'Mark_II/mcp_server/mcp_config.json', 'Mark_II/mcp_server/requirements.txt', 'Mark_II/mcp_server/security_notification_server.py', 'Mark_II/security_scanner.py', 'Mark_II/test_vuln.py']
+2025-08-01 14:40:46,900 - INFO - Found 7 staged files
+2025-08-01 14:40:46,900 - INFO - Scanning file: Mark_II/mcp_server/mcp_client.py
+2025-08-01 14:40:46,901 - INFO - File content length for Mark_II/mcp_server/mcp_client.py: 8358
+2025-08-01 14:41:02,658 - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2025-08-01 14:41:02,689 - INFO - Scanning file: Mark_II/mcp_server/mcp_config.json
+2025-08-01 14:41:02,692 - INFO - File content length for Mark_II/mcp_server/mcp_config.json: 197
+2025-08-01 14:41:13,140 - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2025-08-01 14:41:13,145 - INFO - Scanning file: Mark_II/mcp_server/security_notification_server.py
+2025-08-01 14:41:13,146 - INFO - File content length for Mark_II/mcp_server/security_notification_server.py: 20028
+2025-08-01 14:41:28,013 - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2025-08-01 14:41:28,035 - INFO - Scanning file: Mark_II/security_scanner.py
+2025-08-01 14:41:28,037 - INFO - File content length for Mark_II/security_scanner.py: 28804
+2025-08-01 14:41:39,584 - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2025-08-01 14:41:39,596 - INFO - Scanning file: Mark_II/test_vuln.py
+2025-08-01 14:41:39,612 - INFO - File content length for Mark_II/test_vuln.py: 0
+2025-08-01 14:41:39,612 - WARNING - No content found for Mark_II/test_vuln.py, skipping analysis
+2025-08-01 14:41:39,612 - ERROR - Results file not found: security_scan_results.json
+2025-08-01 14:41:39,622 - ERROR - Failed to send Mac notification: No usable implementation found!
+2025-08-01 14:41:39,623 - WARNING - Email configuration incomplete, skipping email alert
+2025-08-01 14:47:58,478 - INFO - Starting security scan of staged files...
+2025-08-01 14:47:58,590 - ERROR - Error getting staged files: 'GitCommitScanner' object has no attribute '_is_safe_file_path'
+2025-08-01 14:47:58,591 - INFO - Found staged files: []
+2025-08-01 14:47:58,591 - INFO - No staged files found
+2025-08-01 14:50:31,845 - INFO - Starting security scan of staged files...
+2025-08-01 14:50:31,877 - ERROR - Error getting staged files: 'GitCommitScanner' object has no attribute '_is_safe_file_path'
+2025-08-01 14:50:31,877 - INFO - Found staged files: []
+2025-08-01 14:50:31,877 - INFO - No staged files found
+2025-08-01 14:51:15,593 - INFO - Starting security scan of staged files...
+2025-08-01 14:51:15,628 - INFO - Found staged files: ['Mark_II/SECURITY_FIXES.md', 'Mark_II/mcp_server/mcp_client.py', 'Mark_II/mcp_server/mcp_config.json', 'Mark_II/mcp_server/requirements.txt', 'Mark_II/mcp_server/security_notification_server.py', 'Mark_II/security_scanner.py', 'Mark_II/test_vuln.py']
+2025-08-01 14:51:15,628 - INFO - Found 7 staged files
+2025-08-01 14:51:15,628 - INFO - Scanning file: Mark_II/mcp_server/mcp_client.py
+2025-08-01 14:51:15,629 - INFO - File content length for Mark_II/mcp_server/mcp_client.py: 11149
+2025-08-01 14:51:29,915 - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2025-08-01 14:51:29,944 - INFO - Scanning file: Mark_II/mcp_server/mcp_config.json
+2025-08-01 14:51:29,944 - INFO - File content length for Mark_II/mcp_server/mcp_config.json: 257
+2025-08-01 14:51:40,422 - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2025-08-01 14:51:40,428 - INFO - Scanning file: Mark_II/mcp_server/security_notification_server.py
+2025-08-01 14:51:40,429 - INFO - File content length for Mark_II/mcp_server/security_notification_server.py: 27990
+2025-08-01 14:51:56,089 - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2025-08-01 14:51:56,095 - INFO - Scanning file: Mark_II/security_scanner.py
+2025-08-01 14:51:56,096 - INFO - File content length for Mark_II/security_scanner.py: 32569
+2025-08-01 14:52:10,206 - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2025-08-01 14:52:10,209 - INFO - Scanning file: Mark_II/test_vuln.py
+2025-08-01 14:52:10,210 - INFO - File content length for Mark_II/test_vuln.py: 451
+2025-08-01 14:52:21,321 - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2025-08-01 14:52:21,725 - INFO - MCP notifications sent successfully
+2025-08-01 14:54:54,435 - INFO - Starting security scan of staged files...
+2025-08-01 14:54:54,509 - INFO - Found staged files: ['Mark_II/SECURITY_FIXES.md', 'Mark_II/mcp_server/mcp_client.py', 'Mark_II/mcp_server/mcp_config.json', 'Mark_II/mcp_server/requirements.txt', 'Mark_II/mcp_server/security_notification_server.py', 'Mark_II/security_scanner.py']
+2025-08-01 14:54:54,510 - INFO - Found 6 staged files
+2025-08-01 14:54:54,510 - INFO - Scanning file: Mark_II/mcp_server/mcp_client.py
+2025-08-01 14:54:54,510 - INFO - File content length for Mark_II/mcp_server/mcp_client.py: 11149
+2025-08-01 14:55:09,383 - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2025-08-01 14:55:09,401 - INFO - Scanning file: Mark_II/mcp_server/mcp_config.json
+2025-08-01 14:55:09,402 - INFO - File content length for Mark_II/mcp_server/mcp_config.json: 257
+2025-08-01 14:55:18,496 - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2025-08-01 14:55:18,501 - INFO - Scanning file: Mark_II/mcp_server/security_notification_server.py
+2025-08-01 14:55:18,503 - INFO - File content length for Mark_II/mcp_server/security_notification_server.py: 27990
+2025-08-01 14:55:34,440 - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2025-08-01 14:55:34,445 - INFO - Scanning file: Mark_II/security_scanner.py
+2025-08-01 14:55:34,446 - INFO - File content length for Mark_II/security_scanner.py: 32569
+2025-08-01 14:55:49,131 - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2025-08-01 14:55:49,475 - INFO - MCP notifications sent successfully

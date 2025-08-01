@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "security-notification-server": {
+      "command": "/usr/bin/python3",
+      "args": ["./security_notification_server.py"],
+      "env": {
+        "PYTHONPATH": ".",
+        "PATH": "/usr/bin:/bin:/usr/local/bin"
+      }
+    }
+  }
+}

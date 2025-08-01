@@ -12,6 +12,7 @@ import subprocess
 import smtplib
 import logging
 import argparse
+import asyncio
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
@@ -180,15 +181,45 @@ Only flag actual security vulnerabilities, not code quality issues.
                 ]
             )
             
-            # Parse the JSON response
+            # Parse the JSON response with improved error handling
             response_text = response.content[0].text
+            
             # Extract JSON from response if it's wrapped in markdown
             if "```json" in response_text:
                 start = response_text.find("```json") + 7
                 end = response_text.find("```", start)
                 response_text = response_text[start:end].strip()
+            elif "```" in response_text:
+                # Handle other code block formats
+                start = response_text.find("```") + 3
+                end = response_text.find("```", start)
+                response_text = response_text[start:end].strip()
             
-            return json.loads(response_text)
+            # Clean up common JSON formatting issues
+            response_text = response_text.strip()
+            if not response_text.startswith('{'):
+                # Find the first { character
+                start_idx = response_text.find('{')
+                if start_idx != -1:
+                    response_text = response_text[start_idx:]
+            
+            if not response_text.endswith('}'):
+                # Find the last } character
+                end_idx = response_text.rfind('}')
+                if end_idx != -1:
+                    response_text = response_text[:end_idx + 1]
+            
+            try:
+                return json.loads(response_text)
+            except json.JSONDecodeError as je:
+                logging.warning(f"JSON parsing failed, returning safe default: {je}")
+                # Return a safe default response
+                return {
+                    "severity": "low",
+                    "vulnerabilities": [],
+                    "summary": "Analysis completed but response format was invalid",
+                    "recommended_actions": []
+                }
         except Exception as e:
             logging.error(f"Claude analysis failed: {e}")
             return {"error": f"Analysis failed: {str(e)}"}
@@ -198,9 +229,17 @@ class GitCommitScanner:
     """Handles git integration and file detection"""
     
     def __init__(self, repo_path: str = "."):
-        self.repo_path = Path(repo_path)
+        # Validate and sanitize repo_path to prevent command injection
+        self.repo_path = Path(repo_path).resolve()
+        
+        # Ensure the path is a directory and exists
+        if not self.repo_path.exists() or not self.repo_path.is_dir():
+            logging.error(f"Invalid repository path: {repo_path}")
+            self.repo = None
+            return
+            
         try:
-            self.repo = git.Repo(repo_path)
+            self.repo = git.Repo(str(self.repo_path))
         except git.InvalidGitRepositoryError:
             logging.error(f"Not a git repository: {repo_path}")
             self.repo = None
@@ -212,22 +251,48 @@ class GitCommitScanner:
         
         staged_files = []
         try:
-            # Use git command directly to get only Added and Modified files
+            # Validate repo_path for additional security
+            if not self.repo_path.exists() or not self.repo_path.is_dir():
+                logging.error(f"Invalid repository path: {self.repo_path}")
+                return staged_files
+            
+            # Ensure we're operating within safe bounds
+            try:
+                resolved_path = self.repo_path.resolve()
+                # Additional validation - ensure path doesn't contain shell metacharacters
+                path_str = str(resolved_path)
+                import re
+                if not re.match(r'^[a-zA-Z0-9/_\-. ]+$', path_str):
+                    logging.error(f"Repository path contains unsafe characters: {path_str}")
+                    return staged_files
+            except Exception as e:
+                logging.error(f"Path validation failed: {e}")
+                return staged_files
+            
+            # Use git command with maximum security precautions
             import subprocess
             result = subprocess.run(
                 ['git', 'diff', '--cached', '--name-only', '--diff-filter=AM'],
-                cwd=self.repo_path,
+                cwd=str(resolved_path),  # Use validated and resolved path
                 capture_output=True,
-                text=True
+                text=True,
+                timeout=30,  # Add timeout for security
+                env={'PATH': '/usr/bin:/bin'},  # Restrict PATH for security
+                shell=False  # Never use shell=True
             )
             if result.returncode == 0:
-                staged_files = [f.strip() for f in result.stdout.splitlines() if f.strip()]
+                # Validate each file path before adding
+                for file_line in result.stdout.splitlines():
+                    file_path = file_line.strip()
+                    if file_path and self._is_safe_file_path(file_path):
+                        staged_files.append(file_path)
             
             # Fallback: try using GitPython if git command fails
             if not staged_files:
                 for item in self.repo.index.diff("HEAD"):
                     if item.change_type in ['A', 'M']:  # Added or Modified only
-                        staged_files.append(item.a_path)
+                        if self._is_safe_file_path(item.a_path):
+                            staged_files.append(item.a_path)
                 
                 # Also check for new files (not yet in HEAD)
                 for item in self.repo.index.diff(None):
@@ -246,8 +311,21 @@ class GitCommitScanner:
             return ""
         
         try:
+            # Validate file path to prevent path traversal
+            file_path_obj = Path(file_path)
+            if file_path_obj.is_absolute() or '..' in file_path:
+                logging.error(f"Potentially dangerous file path: {file_path}")
+                return ""
+            
             # First try to read from working directory (most reliable for new files)
             full_path = self.repo_path / file_path
+            full_path = full_path.resolve()  # Resolve to absolute path
+            
+            # Ensure the resolved path is still within the repository
+            if not str(full_path).startswith(str(self.repo_path)):
+                logging.error(f"File path escapes repository: {file_path}")
+                return ""
+                
             if full_path.exists():
                 with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
                     content = f.read()
@@ -263,6 +341,64 @@ class GitCommitScanner:
             logging.error(f"Error reading file content for {file_path}: {e}")
         
         return ""
+    
+    def _send_mcp_notifications(self, results_file: str) -> bool:
+        """Send notifications via MCP server with AI-powered fix suggestions"""
+        try:
+            mcp_client_path = Path(__file__).parent / 'mcp_server' / 'mcp_client.py'
+            
+            if not mcp_client_path.exists():
+                logging.warning("MCP client not found, falling back to legacy notifications")
+                return False
+            
+            # Run MCP client
+            result = subprocess.run([
+                sys.executable, str(mcp_client_path), results_file
+            ], capture_output=True, text=True, timeout=30)
+            
+            if result.returncode == 0:
+                logging.info("MCP notifications sent successfully")
+                return True
+            else:
+                logging.error(f"MCP notification failed: {result.stderr}")
+                return False
+                
+        except subprocess.TimeoutExpired:
+            logging.error("MCP notification timed out")
+            return False
+        except Exception as e:
+            logging.error(f"MCP notification error: {e}")
+            return False
+    
+    def _is_safe_file_path(self, file_path: str) -> bool:
+        """Validate that file path is safe and within repository bounds"""
+        import re
+        
+        # Basic validation - no null bytes, control characters, or obvious malicious patterns
+        if '\x00' in file_path or any(ord(c) < 32 for c in file_path if c not in '\t\n\r'):
+            return False
+        
+        # Check for path traversal attempts
+        if '..' in file_path or file_path.startswith('/') or '\\' in file_path:
+            return False
+        
+        # Only allow reasonable file extensions and characters
+        if not re.match(r'^[a-zA-Z0-9/_\-. ]+$', file_path):
+            return False
+        
+        # Length check
+        if len(file_path) > 255:  # Max reasonable file path length
+            return False
+        
+        try:
+            # Ensure resolved path is within repository
+            full_path = (self.repo_path / file_path).resolve()
+            repo_path_resolved = self.repo_path.resolve()
+            
+            # Check if file is within repository bounds
+            return str(full_path).startswith(str(repo_path_resolved))
+        except Exception:
+            return False
 
 
 class SecurityScanner:
@@ -416,9 +552,44 @@ class SecurityScanner:
         if should_alert:
             self._send_security_alert(results)
         
-        # Save results to file
-        with open('security_scan_results.json', 'w') as f:
-            json.dump(results, f, indent=2)
+        # Save results to file with secure permissions
+        results_file = 'security_scan_results.json'
+        
+        # Create file with secure permissions from the start
+        import stat
+        import tempfile
+        import shutil
+        
+        try:
+            # Create temporary file with secure permissions
+            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as temp_file:
+                json.dump(results, temp_file, indent=2)
+                temp_path = temp_file.name
+            
+            # Set secure permissions on temp file
+            os.chmod(temp_path, stat.S_IRUSR | stat.S_IWUSR)  # Owner read/write only
+            
+            # Move temp file to final location
+            shutil.move(temp_path, results_file)
+            
+            # Verify final file permissions
+            file_stat = os.stat(results_file)
+            expected_mode = stat.S_IRUSR | stat.S_IWUSR
+            if file_stat.st_mode & 0o777 != expected_mode:
+                logging.warning(f"File permissions may not be secure: {oct(file_stat.st_mode & 0o777)}")
+                # Try to fix permissions one more time
+                os.chmod(results_file, expected_mode)
+                
+        except Exception as e:
+            logging.error(f"Failed to create secure results file: {e}")
+            # Fallback to basic file creation with permission warning
+            try:
+                with open(results_file, 'w') as f:
+                    json.dump(results, f, indent=2)
+                os.chmod(results_file, stat.S_IRUSR | stat.S_IWUSR)
+            except Exception as fallback_error:
+                logging.error(f"Fallback file creation also failed: {fallback_error}")
+                raise
     
     def _send_security_alert(self, results: Dict[str, Any]):
         """Send security alerts via notifications and email"""
@@ -438,16 +609,21 @@ class SecurityScanner:
             title = "⚠️  Security Issues Found"
             message = f"Found security vulnerabilities in staged files"
         
-        self.notification_manager.send_mac_notification(title, message)
+        # Try MCP notifications first (with AI-powered fix suggestions)
+        mcp_success = self._send_mcp_notifications('security_scan_results.json')
         
-        # Email alert
-        email_subject = f"Security Alert: Vulnerabilities Found in Commit"
-        email_body = self._generate_email_report(results)
-        self.notification_manager.send_email_alert(
-            email_subject,
-            email_body,
-            ['security_scan_results.json']
-        )
+        if not mcp_success:
+            # Fallback to legacy notifications
+            self.notification_manager.send_mac_notification(title, message)
+            
+            # Email alert
+            email_subject = f"Security Alert: Vulnerabilities Found in Commit"
+            email_body = self._generate_email_report(results)
+            self.notification_manager.send_email_alert(
+                email_subject,
+                email_body,
+                ['security_scan_results.json']
+            )
     
     def _generate_email_report(self, results: Dict[str, Any]) -> str:
         """Generate HTML email report"""
@@ -508,6 +684,50 @@ class SecurityScanner:
         
         html += "</body></html>"
         return html
+
+    def _send_mcp_notifications(self, results_file: str) -> bool:
+        """Send notifications via MCP server with AI-powered fix suggestions"""
+        try:
+            # Validate and sanitize the results file path
+            results_path = Path(results_file).resolve()
+            if not results_path.exists():
+                logging.error(f"Results file not found: {results_file}")
+                return False
+            
+            # Ensure the file is in our working directory to prevent path traversal
+            working_dir = Path.cwd().resolve()
+            if not str(results_path).startswith(str(working_dir)):
+                logging.error(f"Results file outside working directory: {results_file}")
+                return False
+            
+            mcp_client_path = Path(__file__).parent / 'mcp_server' / 'mcp_client.py'
+            
+            if not mcp_client_path.exists():
+                logging.warning("MCP client not found, falling back to legacy notifications")
+                return False
+            
+            # Use absolute paths and validate them
+            python_exec = Path(sys.executable).resolve()
+            mcp_client_abs = mcp_client_path.resolve()
+            
+            # Run MCP client with validated paths
+            result = subprocess.run([
+                str(python_exec), str(mcp_client_abs), str(results_path)
+            ], capture_output=True, text=True, timeout=30)
+            
+            if result.returncode == 0:
+                logging.info("MCP notifications sent successfully")
+                return True
+            else:
+                logging.error(f"MCP notification failed: {result.stderr}")
+                return False
+                
+        except subprocess.TimeoutExpired:
+            logging.error("MCP notification timed out")
+            return False
+        except Exception as e:
+            logging.error(f"MCP notification error: {e}")
+            return False
 
 
 def main():

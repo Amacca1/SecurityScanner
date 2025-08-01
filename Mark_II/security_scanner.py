@@ -120,6 +120,15 @@ class ClaudeSecurityAnalyzer:
         if not self.client:
             return {"error": "Claude API not configured"}
         
+        # Quick skip for very small files (likely not containing real vulnerabilities)
+        if len(content.strip()) < 50:
+            return {
+                "severity": "low",
+                "vulnerabilities": [],
+                "summary": "File too small for meaningful analysis",
+                "recommended_actions": []
+            }
+        
         prompt = f"""
 You are a cybersecurity expert analyzing code for vulnerabilities. Please analyze the following code file and identify any security issues.
 
@@ -268,14 +277,26 @@ class SecurityScanner:
         
         # Setup logging
         log_level = getattr(logging, os.getenv('LOG_LEVEL', 'INFO'))
-        logging.basicConfig(
-            level=log_level,
-            format='%(asctime)s - %(levelname)s - %(message)s',
-            handlers=[
-                logging.FileHandler('security_scanner.log'),
-                logging.StreamHandler()
-            ]
-        )
+        
+        # Check if running in a git hook (less verbose output)
+        is_git_hook = os.getenv('GIT_DIR') is not None or 'hooks' in ' '.join(sys.argv)
+        
+        if is_git_hook:
+            # Minimal logging for git hooks to avoid VS Code issues
+            logging.basicConfig(
+                level=logging.WARNING,
+                format='%(message)s',
+                handlers=[logging.FileHandler('security_scanner.log')]
+            )
+        else:
+            logging.basicConfig(
+                level=log_level,
+                format='%(asctime)s - %(levelname)s - %(message)s',
+                handlers=[
+                    logging.FileHandler('security_scanner.log'),
+                    logging.StreamHandler()
+                ]
+            )
     
     def should_scan_file(self, file_path: str) -> bool:
         """Determine if a file should be scanned"""
@@ -494,6 +515,7 @@ def main():
     parser = argparse.ArgumentParser(description='Security Scanner Mark II')
     parser.add_argument('--repo-path', default='.', help='Path to git repository')
     parser.add_argument('--config-check', action='store_true', help='Check configuration')
+    parser.add_argument('--quiet', action='store_true', help='Minimal output for git hooks')
     args = parser.parse_args()
     
     if args.config_check:
@@ -507,7 +529,18 @@ def main():
     scanner = SecurityScanner(args.repo_path)
     results = scanner.scan_commit()
     
-    print(json.dumps(results, indent=2))
+    # Check if running quietly (for git hooks)
+    is_quiet = args.quiet or os.getenv('GIT_DIR') is not None
+    
+    if not is_quiet:
+        print(json.dumps(results, indent=2))
+    else:
+        # Minimal output for VS Code/git hooks
+        summary = results.get("summary")
+        if summary and summary.get("vulnerable_files", 0) > 0:
+            print(f"⚠️  Found {summary['critical_issues']} critical, {summary['high_issues']} high severity issues")
+        elif summary:
+            print("✅ No security issues found")
     
     # Exit with error code if vulnerabilities found above threshold
     summary = results.get("summary")

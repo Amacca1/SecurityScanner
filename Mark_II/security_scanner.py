@@ -202,10 +202,32 @@ class GitCommitScanner:
             return []
         
         staged_files = []
-        for item in self.repo.index.diff("HEAD"):
-            if item.change_type in ['A', 'M']:  # Added or Modified
-                staged_files.append(item.a_path)
+        try:
+            # Get staged files (files in index vs HEAD)
+            for item in self.repo.index.diff("HEAD"):
+                if item.change_type in ['A', 'M']:  # Added or Modified
+                    staged_files.append(item.a_path)
+            
+            # Also check for new files (not yet in HEAD)
+            for item in self.repo.index.diff(None):
+                if item.change_type == 'A':  # New files
+                    staged_files.append(item.a_path)
+                    
+            # Alternative method: use git command directly
+            if not staged_files:
+                import subprocess
+                result = subprocess.run(
+                    ['git', 'diff', '--cached', '--name-only', '--diff-filter=AM'],
+                    cwd=self.repo_path,
+                    capture_output=True,
+                    text=True
+                )
+                if result.returncode == 0:
+                    staged_files = [f.strip() for f in result.stdout.splitlines() if f.strip()]
+        except Exception as e:
+            logging.error(f"Error getting staged files: {e}")
         
+        logging.info(f"Found staged files: {staged_files}")
         return staged_files
     
     def get_file_content(self, file_path: str) -> str:
@@ -328,8 +350,12 @@ class SecurityScanner:
                 scan_results["summary"]["vulnerable_files"] += 1
                 scan_results["vulnerabilities"].extend(analysis["vulnerabilities"])
                 
+                # Get overall severity from analysis or determine from individual vulnerabilities
+                overall_severity = analysis.get("severity", "low")
+                
                 for vuln in analysis["vulnerabilities"]:
-                    severity = vuln.get("severity", "low")
+                    # Use individual vulnerability severity if available, otherwise use overall severity
+                    severity = vuln.get("severity", overall_severity)
                     if severity == "critical":
                         scan_results["summary"]["critical_issues"] += 1
                     elif severity == "high":

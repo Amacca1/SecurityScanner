@@ -11,16 +11,21 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4  # Updated to latest version
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5  # Updated to latest version
       with:
         python-version: '3.11'
     
-    - name: Download Security Scanner
+    - name: Verify Scanner Integrity
       run: |
-        curl -O https://raw.githubusercontent.com/amacca1/SecurityScanner/main/scanner.py
+        # Use local scanner.py file instead of downloading from remote
+        if [ ! -f scanner.py ]; then
+          echo "❌ scanner.py not found in repository"
+          exit 1
+        fi
+        echo "✅ Using local scanner.py file"
         chmod +x scanner.py
     
     - name: Run Security Scan

@@ -223,7 +223,26 @@ def main():
             print(f"Error: Path '{scan_path}' does not exist", file=sys.stderr)
             sys.exit(1)
         
-        results = scanner.scan_directory(scan_path)
+        # Handle both files and directories
+        if scan_path.is_file():
+            # Scan single file
+            file_issues = scanner.scan_file(scan_path)
+            summary = {
+                'total': len(file_issues),
+                'critical': len([i for i in file_issues if i['severity'] == 'critical']),
+                'high': len([i for i in file_issues if i['severity'] == 'high']),
+                'medium': len([i for i in file_issues if i['severity'] == 'medium']),
+                'low': len([i for i in file_issues if i['severity'] == 'low']),
+            }
+            results = {
+                'issues': file_issues,
+                'summary': summary,
+                'scanned_files': 1 if file_issues or scan_path.suffix in ['.py', '.js', '.ts', '.java', '.php', '.rb', '.go', '.rs'] else 0,
+                'timestamp': subprocess.check_output(['date', '-Iseconds']).decode().strip()
+            }
+        else:
+            # Scan directory
+            results = scanner.scan_directory(scan_path)
     
     report = scanner.generate_report(results, args.format)
     
